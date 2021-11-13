@@ -29,6 +29,18 @@ switch($var_accion){
         //se puede usar fetch::lazy para tener los datos actuales y hacer la condicion
         //:::
 
+        $sentencia_sql= $conexion->prepare("SELECT * FROM usuario");
+        $sentencia_sql->execute();
+        $lista_validaciones=$sentencia_sql->fetchAll(PDO::FETCH_ASSOC);
+        $validacion=true;
+        foreach($lista_validaciones as $vali){
+            if($var_usuario_email==$vali['sql_usuario_email']){
+                $validacion=false;
+            }
+
+        }
+
+        if($validacion==true){
 
         $sentencia_sql= $conexion->prepare("INSERT INTO usuario (
             sql_usuario_email,
@@ -44,11 +56,32 @@ switch($var_accion){
         $sentencia_sql->bindParam(':param_usuario_pass',$var_usuario_pass);
         $sentencia_sql->bindParam(':param_usuario_rol_id',$var_usuario_rol_id);
         $sentencia_sql->execute();
-
         header("Location:usuario.php");
+        }
+
         break;
 
     case "Modificar":
+
+        //validacion en la modificacion de email:
+        if(isset($var_usuario_email)){
+            $sentencia_sql_3= $conexion->prepare("SELECT * FROM usuario
+            WHERE sql_usuario_id NOT IN ( 
+            SELECT sql_usuario_id FROM usuario
+            WHERE sql_usuario_id=:param_usuario_id)");
+            $sentencia_sql_3->bindParam(':param_usuario_id',$var_usuario_id);
+            $sentencia_sql_3->execute();
+            $lista_vali_modi=$sentencia_sql_3->fetchAll(PDO::FETCH_ASSOC);
+            $validacion_modi=true;
+            foreach($lista_vali_modi as $modi){
+                if($var_usuario_email==$modi['sql_usuario_email']){
+                    $validacion_modi=false;
+                }
+            }
+        }
+        if($validacion_modi==true){
+            
+        
 
         //Actualizacion mediante UPDATE y datos de la base de datos:
         $sentencia_sql= $conexion->prepare("UPDATE usuario SET
@@ -70,7 +103,8 @@ switch($var_accion){
 
         //fin modificacion imagen
 
-        header("Location:usuario.php");    
+        header("Location:usuario.php");
+        }    
         break;
 
 
@@ -168,6 +202,23 @@ if(isset($var_usuario_rol_id_2)){
                         <input type="hidden" required readonly class="form-control"  value="<?php echo $var_usuario_id; ?>" name="usuario_id" id="usuario_id"  placeholder="ID">
                     </div>
 
+                    <?php if(isset($validacion)){
+                        if($validacion==false){
+                         ?>
+                        <div class="alert alert-danger">
+                        <strong>Email existente, digite un nuevo Email</strong>
+                        </div>
+
+                   <?php }} ?>
+                   <?php if(isset($validacion_modi)){
+                        if($validacion_modi==false){
+                         ?>
+                        <div class="alert alert-danger">
+                        <strong>Otro usuario tiene ese email, digite un nuevo email</strong>
+                        </div>
+
+                   <?php }} ?>
+
                     <div class = "form-group">
                         <label for="usuario_email">Émail:</label>
                         <input type="text" required class="form-control" value="<?php echo $var_usuario_email; ?>" name="usuario_email" id="usuario_email"  placeholder="Email">
@@ -194,11 +245,46 @@ if(isset($var_usuario_rol_id_2)){
                     </div>
 
                     <div class="btn-group" role="group" aria-label="">
-                        <button type="submit" name="accion" <?php echo ($var_accion=="Seleccionar")? "disabled":""?> value= "Agregar" class="btn btn-success">Agregar</button>
-                        <button type="submit" name="accion" <?php echo ($var_accion!="Seleccionar")? "disabled":""?> value= "Modificar" class="btn btn-warning">Modificar</button>
-                        <button type="submit" name="accion" <?php echo ($var_accion!="Seleccionar")? "disabled":""?> value= "Cancelar" class="btn btn-info">Cancelar</button>
+
+                   <?php 
+                        $boton="disabled";    
+                        if(isset($validacion_modi)){
+                        if($validacion_modi==true){
+                        $boton="";
+                   }} ?>
+
+                        <button type="submit" name="accion" 
+                        
+                        <?php 
+
+                        if(isset($validacion_modi)){
+                            if($validacion_modi==false){
+                                echo "disabled";
+                            }
+                        }else{
+                            if($var_accion=="Seleccionar")
+                            echo "disabled";
+                        }
+                        ?> value= "Agregar" class="btn btn-success">Agregar</button>
+                        
+                        <button type="submit" name="accion" <?php 
+                        if(isset($validacion_modi)){
+                            if($validacion_modi==false){
+                                echo "";
+                            }
+                        }else{
+                            if($var_accion!="Seleccionar")
+                            echo "disabled";
+                        }
+
+                        
+                        ?> value= "Modificar" class="btn btn-warning">Modificar</button>
+                        
                     </div>
-                </form>    
+                    <!-- cambiar tipo de boton, sacarlo del form -->
+                    <button type="submit" class="btn btn-info" href="usuario.php">Cancelar</button>
+                </form> 
+                   
             </div>
         </div>
     </div>  
