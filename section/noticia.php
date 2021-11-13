@@ -150,6 +150,8 @@ switch($var_accion){
 
     case "Seleccionar":
 
+
+
         //Seleccionamos informacion mediante INNER JOIN:
         $sentencia_sql= $conexion->prepare("SELECT 
         noticia.sql_noticia_id, 

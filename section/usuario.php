@@ -110,6 +110,19 @@ switch($var_accion){
 
     case "Borrar":
 
+        //que pasa si un usuario borra todos los usuarios...
+        $sentencia_sql= $conexion->prepare("SELECT * FROM usuario");
+        $sentencia_sql->execute();
+        $lista_usuarios=$sentencia_sql->fetchAll(PDO::FETCH_ASSOC); 
+        $cantidad_usuario=count($lista_usuarios);
+
+        $validacion_borrar=true;
+        
+        if($cantidad_usuario==1){
+            $validacion_borrar=false;
+        }
+
+        if($validacion_borrar==true){
         //Borrado de datos en BD mediante DELETE y id:
         $sentencia_sql = $conexion->prepare("DELETE FROM usuario WHERE sql_usuario_id=:param_usuario_id;");
         $sentencia_sql->bindParam(':param_usuario_id',$var_usuario_id);
@@ -117,9 +130,12 @@ switch($var_accion){
         //echo "Presionado Boton Borrar";
         //header("Location:productos.php");
         header("Location:usuario.php");
+        }
         break;
 
     case "Seleccionar":
+
+
 
         //Seleccionamos informacion mediante INNER JOIN:
         $sentencia_sql= $conexion->prepare("SELECT 
@@ -294,6 +310,16 @@ if(isset($var_usuario_rol_id_2)){
     <div class="col-md-7">
         
         <table class="table table-bordered">
+            
+            <?php if(isset($validacion_borrar)){
+                if($validacion_borrar==false){ ?>
+                <div class="alert alert-danger">
+                        <strong>No se puede borrar mas usuarios</strong>
+                        </div>    
+
+                
+            <?php }} ?>
+
             <thead>
                 <tr>
                     
