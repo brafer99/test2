@@ -12,7 +12,6 @@ CREATE TABLE rol(
 CREATE TABLE usuario(
 	sql_usuario_id INTEGER UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     sql_usuario_email VARCHAR(80) UNIQUE NOT NULL,
-    sql_usuario_name VARCHAR(100) NOT NULL,
 	sql_usuario_pass VARCHAR(100) NOT NULL,
     sql_usuario_rol_id INTEGER UNSIGNED NOT NULL,
 	FOREIGN KEY (sql_usuario_rol_id) REFERENCES rol(sql_rol_id) 
@@ -52,9 +51,9 @@ INSERT INTO rol(sql_rol_nombre) VALUES
     ('Administrador'),
     ('Usuario');
 
-INSERT INTO usuario(sql_usuario_email,sql_usuario_name,sql_usuario_pass,sql_usuario_rol_id) VALUES
-    ('sistema@gmail.com','sistema','contrasenia',1),
-    ('usuario@gmail.com','usuario','contrasenia',2);
+INSERT INTO usuario(sql_usuario_email,sql_usuario_pass,sql_usuario_rol_id) VALUES
+    ('sistema@gmail.com','contraseña',1),
+    ('usuario@gmail.com','contraseña',2);
 
 
 INSERT INTO area(sql_area_nombre,sql_area_sigla) VALUES
