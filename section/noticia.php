@@ -8,7 +8,7 @@
 //datos de tabla
 $var_noticia_id = (isset($_POST['noticia_id']))?$_POST['noticia_id']:"";
 $var_noticia_titulo = (isset($_POST['noticia_titulo']))?$_POST['noticia_titulo']:"";
-$var_noticia_imagen = (isset($_POST['noticia_imagen']))?$_POST['noticia_imagen']:"";
+$var_noticia_imagen = (isset($_FILES['noticia_imagen']['name'])) ? $_FILES['noticia_imagen']['name'] :"";
 $var_noticia_fecha = (isset($_POST['noticia_fecha']))?$_POST['noticia_fecha']:"";
 $var_noticia_hora = (isset($_POST['noticia_hora']))?$_POST['noticia_hora']:"";
 $var_noticia_enlace = (isset($_POST['noticia_enlace']))?$_POST['noticia_enlace']:"";
@@ -43,7 +43,15 @@ switch($var_accion){
 
         //Mediante bindParam relacionamos los parametros y las variables con contenido POST:
         $sentencia_sql->bindParam(':param_noticia_titulo',$var_noticia_titulo);
-        $sentencia_sql->bindParam(':param_noticia_imagen',$var_noticia_imagen);
+        
+        //TRATAMIENTO DE IMAGENES//
+        $fecha=new DateTime();
+        $nombre_archivo=($var_noticia_imagen!="") ? $fecha->getTimestamp()."_".$_FILES["noticia_imagen"]['name'] :"imagen.jpg";
+        $temporal_imagen = $_FILES["noticia_imagen"]["tmp_name"];
+        if($temporal_imagen!=""){move_uploaded_file($temporal_imagen,"../img/".$nombre_archivo);}
+
+        //Demas parametros:
+        $sentencia_sql->bindParam(':param_noticia_imagen',$nombre_archivo);
         $sentencia_sql->bindParam(':param_noticia_fecha',$var_noticia_fecha);
         $sentencia_sql->bindParam(':param_noticia_hora',$var_noticia_hora);
         $sentencia_sql->bindParam(':param_noticia_enlace',$var_noticia_enlace);
@@ -62,7 +70,7 @@ switch($var_accion){
         //Actualizacion mediante UPDATE y datos de la base de datos:
         $sentencia_sql= $conexion->prepare("UPDATE noticia SET
             sql_noticia_titulo=:param_noticia_titulo,
-            sql_noticia_imagen=:param_noticia_imagen,
+           
             sql_noticia_fecha=:param_noticia_fecha,
             sql_noticia_hora=:param_noticia_hora,
             sql_noticia_enlace=:param_noticia_enlace,
@@ -73,21 +81,65 @@ switch($var_accion){
 
         $sentencia_sql->bindParam(':param_noticia_id',$var_noticia_id);
         $sentencia_sql->bindParam(':param_noticia_titulo',$var_noticia_titulo);
-        $sentencia_sql->bindParam(':param_noticia_imagen',$var_noticia_imagen);
+        
         $sentencia_sql->bindParam(':param_noticia_fecha',$var_noticia_fecha);
         $sentencia_sql->bindParam(':param_noticia_hora',$var_noticia_hora);
         $sentencia_sql->bindParam(':param_noticia_enlace',$var_noticia_enlace);
         $sentencia_sql->bindParam(':param_noticia_area_id',$var_noticia_autor_id);
         $sentencia_sql->bindParam(':param_noticia_estado_id',$var_noticia_estado_id);    
-
         $sentencia_sql->execute();
+
+        //Modificacion imagen
+        if ($var_noticia_imagen!=""){
+
+            //AÑADIMOS EL NUEVO ARCHIVO CON (similar a agregar)
+            $fecha=new DateTime();
+            $nombre_archivo=($var_noticia_imagen!="") ? $fecha->getTimestamp()."_".$_FILES["noticia_imagen"]['name'] :"imagen.jpg";           
+            $temporal_imagen = $_FILES["noticia_imagen"]["tmp_name"];
+            move_uploaded_file($temporal_imagen,"../img/".$nombre_archivo); 
+            
+            //ahora eliminamos el FILE (similar a DELETE)
+            $sentencia_sql = $conexion->prepare("SELECT sql_noticia_imagen FROM noticia WHERE sql_noticia_id=:param_noticia_id;");
+            $sentencia_sql->bindParam(':param_noticia_id',$var_noticia_id);
+            $sentencia_sql->execute();
+            $noticia = $sentencia_sql->fetch(PDO::FETCH_LAZY);
+
+            if(isset($noticia["sql_noticia_imagen"]) && ($noticia["sql_noticia_imagen"]!="imagen.jpg")){
+                if(file_exists("../img/".$noticia["sql_noticia_imagen"])){
+                    unlink("../img/".$noticia["sql_noticia_imagen"]);
+                }
+            }        
+
+            //ACTUALIZAMOS LOS NUEVOS PARAMETROS
+            $sentencia_sql = $conexion->prepare("UPDATE noticia SET sql_noticia_imagen=:param_noticia_imagen  WHERE sql_noticia_id=:param_noticia_id;");
+            //IGUAL QUE EN agregar, utilizamos la varibale modificada $nombre_archivo...
+            $sentencia_sql->bindParam(':param_noticia_imagen',$nombre_archivo);
+            $sentencia_sql->bindParam(':param_noticia_id',$var_noticia_id);
+            $sentencia_sql->execute();
+        }
+        //fin modificacion imagen
+
         header("Location:noticia.php");    
         break;
 
 
     case "Borrar":
-        
-        //Borrado de datos mediante DELETE y id:
+
+        //Borrado de imagenes de /img...
+        $sentencia_sql = $conexion->prepare("SELECT sql_noticia_imagen FROM noticia WHERE sql_noticia_id=:param_noticia_id;");
+        $sentencia_sql->bindParam(':param_noticia_id',$var_noticia_id);
+        $sentencia_sql->execute();
+        $noticia = $sentencia_sql->fetch(PDO::FETCH_LAZY);
+
+        if(isset($noticia["sql_noticia_imagen"]) && ($noticia["sql_noticia_imagen"]!="imagen.jpg")){
+            if(file_exists("../img/".$noticia["sql_noticia_imagen"])){
+                unlink("../img/".$noticia["sql_noticia_imagen"]);
+            }
+
+        }
+        //FIN borrado de imagen...
+
+        //Borrado de datos en BD mediante DELETE y id:
         $sentencia_sql = $conexion->prepare("DELETE FROM noticia WHERE sql_noticia_id=:param_noticia_id;");
         $sentencia_sql->bindParam(':param_noticia_id',$var_noticia_id);
         $sentencia_sql->execute();
@@ -222,10 +274,13 @@ if(isset($var_noticia_estado_id_2)){
                         <label for="noticia_titulo">Título:</label>
                         <input type="text" required class="form-control" value="<?php echo $var_noticia_titulo; ?>" name="noticia_titulo" id="noticia_titulo"  placeholder="Título">
                     </div>
-
+                    <!-- Imagenes: -->
                     <div class = "form-group">
-                        <label for="noticia_imagen">Imagen:</label>
-                        <input type="text" required class="form-control" value="<?php echo $var_noticia_imagen; ?>" name="noticia_imagen" id="noticia_imagen"  placeholder="Imagen">
+                        <label for="noticia_imagen">Imagen:</label><br/> 
+                        <?php if($var_noticia_imagen!=""){ ?>
+                            <img class="img-thumbnail rounded" src="../img/<?php echo $var_noticia_imagen;?>" width="50" alt="">    
+                        <?php } ?>
+                        <input type="file" class="form-control" name="noticia_imagen" id="noticia_imagen" placeholder="ID">
                     </div>
 
                      <div class = "form-group">
@@ -243,45 +298,41 @@ if(isset($var_noticia_estado_id_2)){
                         <input type="text" required class="form-control" value="<?php echo $var_noticia_enlace; ?>" name="noticia_enlace" id="noticia_enlace"  placeholder="Hora">
                     </div>
 
-                    
-                    <label for="areas">Área:</label>
-                   <select name="noticia_area_id" id="noticia_area_id" required>
+                     <!-- Lista con areas: -->
+                    <div class = "form-group">
+                        <label for="areas">Área:</label>
+                        <select name="noticia_area_id" id="noticia_area_id" required>
+                            <?php if(isset($var_noticia_area_id_2)) { ?>
+                                <option selected="" value="<?php echo $var_noticia_area_id_2; ?>" ><?php echo $var_area_sigla; ?></option> 
+                            <?php } else{?>
+                                <option value="" selected disabled hidden>Selecciona una opción</option> 
+                            <?php }?>
+                            <?php foreach($lista_areas as $area){ ?>
+                                <option value="<?php echo $area['sql_area_id']; ?>"> <?php echo $area['sql_area_sigla']; ?></option> 
+                            <?php } ?>
+                        </select>
+                    </div>
 
-                        <?php if(isset($var_noticia_area_id_2)) { ?>
-                            <option selected="" value="<?php echo $var_noticia_area_id_2; ?>" ><?php echo $var_area_sigla; ?></option> 
-                        <?php } else{?>
-
-                            <option value="" selected disabled hidden>Selecciona una opción</option> 
-                        <?php }?>
-
-                        <?php foreach($lista_areas as $area){ ?>
-                            <option value="<?php echo $area['sql_area_id']; ?>"> <?php echo $area['sql_area_sigla']; ?></option> 
-                        <?php } ?>
-
-                    </select> 
-                      <br/>          
-                    <label for="estado">Estado:</label>
-                   <select name="noticia_estado_id" id="noticia_estado_id" required>
-
-                        <?php if(isset($var_noticia_estado_id_2)) { ?>
-                            <option selected="" value="<?php echo $var_noticia_estado_id_2; ?>" ><?php echo $var_estado_nombre; ?></option> 
-                        <?php } else{?>
-
-                            <option value="" selected disabled hidden>Selecciona una opción</option> 
-                        <?php }?>
-
-                        <?php foreach($lista_estados as $estado){ ?>
-                            <option value="<?php echo $estado['sql_estado_id']; ?>"> <?php echo $estado['sql_estado_nombre']; ?></option> 
-                        <?php } ?>
-
-                    </select> 
-                                
+                   <!-- Lista con estado: -->
+                    <div class = "form-group">
+                        <label for="estado">Estado:</label>
+                        <select name="noticia_estado_id" id="noticia_estado_id" required>
+                            <?php if(isset($var_noticia_estado_id_2)) { ?>
+                                <option selected="" value="<?php echo $var_noticia_estado_id_2; ?>" ><?php echo $var_estado_nombre; ?></option> 
+                            <?php } else{?>
+                                <option value="" selected disabled hidden>Selecciona una opción</option> 
+                            <?php }?>
+                            <?php foreach($lista_estados as $estado){ ?>
+                                <option value="<?php echo $estado['sql_estado_id']; ?>"> <?php echo $estado['sql_estado_nombre']; ?></option> 
+                            <?php } ?>
+                        </select> 
+                    </div><br/> 
 
                     <div class="btn-group" role="group" aria-label="">
-                    <button type="submit" name="accion" <?php echo ($var_accion=="Seleccionar")? "disabled":""?> value= "Agregar" class="btn btn-success">Agregar</button>
-                    <button type="submit" name="accion" <?php echo ($var_accion!="Seleccionar")? "disabled":""?> value= "Modificar" class="btn btn-warning">Modificar</button>
-                    <button type="submit" name="accion" <?php echo ($var_accion!="Seleccionar")? "disabled":""?> value= "Cancelar" class="btn btn-info">Cancelar</button>
-                </div>
+                        <button type="submit" name="accion" <?php echo ($var_accion=="Seleccionar")? "disabled":""?> value= "Agregar" class="btn btn-success">Agregar</button>
+                        <button type="submit" name="accion" <?php echo ($var_accion!="Seleccionar")? "disabled":""?> value= "Modificar" class="btn btn-warning">Modificar</button>
+                        <button type="submit" name="accion" <?php echo ($var_accion!="Seleccionar")? "disabled":""?> value= "Cancelar" class="btn btn-info">Cancelar</button>
+                    </div>
                 </form>    
             </div>
         </div>
@@ -308,7 +359,7 @@ if(isset($var_noticia_estado_id_2)){
                 <tr>
 
                     <td><?php echo $noti['sql_noticia_titulo'] ?> </td>
-                    <td><?php echo $noti['sql_noticia_imagen'] ?></td>
+                    <td><img class="img-thumbnail rounded" src="../img/<?php echo $noti['sql_noticia_imagen'];?>" width="100" alt=""></td>
                     <td><?php echo $noti['sql_area_sigla'] ?></td>
                     <td><?php echo $noti['sql_estado_nombre'] ?></td>
                    
