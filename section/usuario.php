@@ -22,13 +22,6 @@ switch($var_accion){
         
         //Preparamos la sentencia sql con INSERT INTO y datos de la base de datos:
 
-        //validar que no existar el mismo usuario :::::
-        //puede ser poner un if antes de hacer el insert
-        //un if y un select, donde usuario_defeinido sea deferente a 
-        //usuario puesto en POST
-        //se puede usar fetch::lazy para tener los datos actuales y hacer la condicion
-        //:::
-
         $sentencia_sql= $conexion->prepare("SELECT * FROM usuario");
         $sentencia_sql->execute();
         $lista_validaciones=$sentencia_sql->fetchAll(PDO::FETCH_ASSOC);
@@ -79,10 +72,8 @@ switch($var_accion){
                 }
             }
         }
-        if($validacion_modi==true){
-            
-        
 
+        if($validacion_modi==true){
         //Actualizacion mediante UPDATE y datos de la base de datos:
         $sentencia_sql= $conexion->prepare("UPDATE usuario SET
 
@@ -104,6 +95,23 @@ switch($var_accion){
         //fin modificacion imagen
 
         header("Location:usuario.php");
+        }else{
+            
+            $sentencia_sql= $conexion->prepare("SELECT 
+            usuario.sql_usuario_id, 
+            usuario.sql_usuario_email, 
+            usuario.sql_usuario_pass, 
+            usuario.sql_usuario_rol_id,
+            rol.sql_rol_nombre
+            FROM usuario
+            JOIN rol ON usuario.sql_usuario_rol_id=rol.sql_rol_id 
+            WHERE sql_usuario_id=:param_usuario_id;");
+            $sentencia_sql->bindParam(':param_usuario_id',$var_usuario_id);
+            $sentencia_sql->execute();
+            //FETCH_LAZY CARGA LOS DATOS UNO A UNO:
+            $usuario = $sentencia_sql->fetch(PDO::FETCH_LAZY);            
+            $var_usuario_rol_id_2=$usuario['sql_usuario_rol_id'];
+            $var_rol_nombre=$usuario['sql_rol_nombre'];   
         }    
         break;
 
@@ -130,7 +138,7 @@ switch($var_accion){
         //echo "Presionado Boton Borrar";
         //header("Location:productos.php");
         header("Location:usuario.php");
-        }
+        } 
         break;
 
     case "Seleccionar":
@@ -237,13 +245,35 @@ if(isset($var_usuario_rol_id_2)){
 
                     <div class = "form-group">
                         <label for="usuario_email">Émail:</label>
-                        <input type="text" required class="form-control" value="<?php echo $var_usuario_email; ?>" name="usuario_email" id="usuario_email"  placeholder="Email">
+                        <input type="email" required class="form-control" value="<?php echo $var_usuario_email; ?>" name="usuario_email" id="usuario_email"  placeholder="Email">
                     </div>
 
+
+
                     <div class = "form-group">
-                        <label for="usuario_pass">Contraseña:</label>
-                        <input type="text" required class="form-control" value="<?php echo $var_usuario_pass; ?>" name="usuario_pass" id="usuario_pass"  placeholder="Contraseña">
+                        <label>Contraseña:</label>
+                        <div class="form-row">
+                            <div class="col">
+                                <input required class="form-control" value="<?php echo $var_usuario_pass; ?>" type="password" name="usuario_pass" id="contraseña" placeholder="Contraseña">
+                            </div>
+
+                            <div class="col">
+                                <button class="btn btn-primary" type="button" id="boton">Mostrar Contraseña</button>
+                            </div>
+                        </div>
                     </div>
+                    <script type="text/javascript">
+                        var boton = document.getElementById('boton');
+                        var input = document.getElementById('contraseña');
+                        boton.addEventListener('click',mostrarContraseña);
+                        function mostrarContraseña(){
+                            if(input.type == "password"){
+                                input.type = "text";
+                            }else{
+                                input.type = "password";
+                            }
+                        }
+                        </script>
 
                      <!-- Lista con areas: -->
                     <div class = "form-group">
@@ -260,48 +290,45 @@ if(isset($var_usuario_rol_id_2)){
                         </select>
                     </div>
 
+
                     <div class="btn-group" role="group" aria-label="">
 
-                   <?php 
-                        $boton="disabled";    
-                        if(isset($validacion_modi)){
-                        if($validacion_modi==true){
-                        $boton="";
-                   }} ?>
 
                         <button type="submit" name="accion" 
-                        
-                        <?php 
 
-                        if(isset($validacion_modi)){
+                        <?php if(isset($validacion_modi)){
                             if($validacion_modi==false){
                                 echo "disabled";
                             }
                         }else{
-                            if($var_accion=="Seleccionar")
-                            echo "disabled";
+                            if($var_accion=="Seleccionar"){
+                                echo "disabled";
+                            } 
                         }
-                        ?> value= "Agregar" class="btn btn-success">Agregar</button>
+                        ?>
+                        value= "Agregar" class="btn btn-success">Agregar</button>
                         
-                        <button type="submit" name="accion" <?php 
-                        if(isset($validacion_modi)){
+                        <button type="submit" name="accion" 
+                        <?php if(isset($validacion_modi)){
                             if($validacion_modi==false){
                                 echo "";
                             }
                         }else{
-                            if($var_accion!="Seleccionar")
-                            echo "disabled";
-                        }
-
-                        
+                            if($var_accion!="Seleccionar"){
+                                echo "disabled";
+                            }
+                        } 
                         ?> value= "Modificar" class="btn btn-warning">Modificar</button>
-                        
+
+                         <a href="usuario.php"><button type="button" class="btn btn-info" ">Cancelar</button></a>
                     </div>
-                    <!-- cambiar tipo de boton, sacarlo del form -->
-                    <button type="submit" class="btn btn-info" href="usuario.php">Cancelar</button>
+                    <!-- cambiar tipo de boton, sacarlo del form -->  
                 </form> 
+                <br/>
+               
                    
             </div>
+            
         </div>
     </div>  
 
@@ -324,8 +351,8 @@ if(isset($var_usuario_rol_id_2)){
                 <tr>
                     
                     <th>Email</th>
-                    <th>Contraseña</th>
                     <th>Rol</th>
+                    <th>Acciones</th>
 
                 </tr>
             </thead>
@@ -335,16 +362,13 @@ if(isset($var_usuario_rol_id_2)){
                 <tr>
 
                     <td><?php echo $usu['sql_usuario_email'] ?> </td>
-                    <td><?php echo $usu['sql_usuario_pass'] ?></td>
                     <td><?php echo $usu['sql_rol_nombre'] ?></td>
                    
 
                     <td>
                     <form method="post">
-                        <input type="hidden" name="usuario_id" id="usuario_id" value="<?php echo $usu['sql_usuario_id'] ?>"/>
-                        
+                        <input type="hidden" name="usuario_id" id="usuario_id" value="<?php echo $usu['sql_usuario_id'] ?>"/>   
                         <input type="submit" name="accion" value="Seleccionar" class="btn btn-primary"/>
-
                         <input type="submit" name="accion" value="Borrar" class="btn btn-danger"/>
 
                     </form>

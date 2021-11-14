@@ -1,5 +1,25 @@
+
+<?php
+
+
+session_start();
+  if(!isset($_SESSION['valida_usuario'])){
+    header("Location:index.php");
+  }
+  else{
+    if($_SESSION['valida_usuario']=="ok"){
+      $nombre_usuario=$_SESSION["nombre_usuario"];
+    }
+  }
+
+
+
+?>
+
+
+
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <title>Title</title>
     <meta charset="utf-8">

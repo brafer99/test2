@@ -333,7 +333,7 @@ if(isset($var_noticia_estado_id_2)){
                     <div class="btn-group" role="group" aria-label="">
                         <button type="submit" name="accion" <?php echo ($var_accion=="Seleccionar")? "disabled":""?> value= "Agregar" class="btn btn-success">Agregar</button>
                         <button type="submit" name="accion" <?php echo ($var_accion!="Seleccionar")? "disabled":""?> value= "Modificar" class="btn btn-warning">Modificar</button>
-                        <button type="submit" name="accion" <?php echo ($var_accion!="Seleccionar")? "disabled":""?> value= "Cancelar" class="btn btn-info">Cancelar</button>
+                        <a href="noticia.php"><button type="button" class="btn btn-info" ">Cancelar</button></a>
                     </div>
                 </form>    
             </div>
