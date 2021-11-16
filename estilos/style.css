@@ -1,0 +1,8 @@
+.juntar {
+  position: relative;
+  display: flex;
+}
+.boton_ver {
+  position: absolute;
+  right: 0;
+}

@@ -13,24 +13,25 @@ if($_POST){
     //se usa esta forma, lo ideal seria hacer consulta a la base de datos
     
     //una vez validada la informacion le damos estos valores para que pueda usarse en otras plantilla
-        $sentenciaSQL= $conexion->prepare("SELECT * FROM usuario WHERE sql_usuario_email=:param_usuario_email AND sql_usuario_pass=:param_usuario_pass");
+        $sentenciaSQL= $conexion->prepare("SELECT sql_usuario_pass from usuario WHERE sql_usuario_email=:param_usuario_email");
         $sentenciaSQL->bindParam(':param_usuario_email',$var_login_email);
-        $sentenciaSQL->bindParam(':param_usuario_pass',$var_login_pass);
         $sentenciaSQL->execute();
         $usuario=$sentenciaSQL->fetch(PDO::FETCH_LAZY);
 
-        if(isset($usuario['sql_usuario_email'])){
+        $hash = $usuario['sql_usuario_pass'];
         
+
+        if(password_verify($var_login_pass,$hash)){
+
         $_SESSION['valida_usuario']="ok";
         $_SESSION['nombre_usuario']=$var_login_email;
-
-        header('Location:usuario.php');
-    }else{
+         header('Location:usuario.php');
+         }else{
         $mensaje="Error: El usuario ó contraseña son incorrectos";
-    }
+        }
 
+    
     }
-
 ?>
 
 <!doctype html>

@@ -11,6 +11,8 @@ $var_usuario_email = (isset($_POST['usuario_email']))?$_POST['usuario_email']:""
 $var_usuario_pass = (isset($_POST['usuario_pass']))?$_POST['usuario_pass']:"";
 $var_usuario_rol_id = (isset($_POST['usuario_rol_id']))?$_POST['usuario_rol_id']:"";
 
+$validacion_2=true;
+$validacion=true;
 
 //opciones de tabla
 $var_accion = (isset($_POST['accion']))?$_POST['accion']:"";
@@ -29,6 +31,7 @@ switch($var_accion){
         foreach($lista_validaciones as $vali){
             if($var_usuario_email==$vali['sql_usuario_email']){
                 $validacion=false;
+                $validacion_2=false;
             }
 
         }
@@ -45,10 +48,15 @@ switch($var_accion){
             :param_usuario_rol_id );");
 
         //Mediante bindParam relacionamos los parametros y las variables con contenido POST:
+        
+        $contra_hash = password_hash($var_usuario_pass,PASSWORD_DEFAULT,['cost'=>10]);
+
         $sentencia_sql->bindParam(':param_usuario_email',$var_usuario_email);
-        $sentencia_sql->bindParam(':param_usuario_pass',$var_usuario_pass);
+        $sentencia_sql->bindParam(':param_usuario_pass',$contra_hash);
         $sentencia_sql->bindParam(':param_usuario_rol_id',$var_usuario_rol_id);
         $sentencia_sql->execute();
+
+
         header("Location:usuario.php");
         }
 
@@ -57,23 +65,6 @@ switch($var_accion){
     case "Modificar":
 
         //validacion en la modificacion de email:
-        if(isset($var_usuario_email)){
-            $sentencia_sql_3= $conexion->prepare("SELECT * FROM usuario
-            WHERE sql_usuario_id NOT IN ( 
-            SELECT sql_usuario_id FROM usuario
-            WHERE sql_usuario_id=:param_usuario_id)");
-            $sentencia_sql_3->bindParam(':param_usuario_id',$var_usuario_id);
-            $sentencia_sql_3->execute();
-            $lista_vali_modi=$sentencia_sql_3->fetchAll(PDO::FETCH_ASSOC);
-            $validacion_modi=true;
-            foreach($lista_vali_modi as $modi){
-                if($var_usuario_email==$modi['sql_usuario_email']){
-                    $validacion_modi=false;
-                }
-            }
-        }
-
-        if($validacion_modi==true){
         //Actualizacion mediante UPDATE y datos de la base de datos:
         $sentencia_sql= $conexion->prepare("UPDATE usuario SET
 
@@ -84,35 +75,13 @@ switch($var_accion){
             WHERE 
             sql_usuario_id=:param_usuario_id;"); 
 
+        $contra_hash = password_hash($var_usuario_pass,PASSWORD_DEFAULT,['cost'=>10]);
         $sentencia_sql->bindParam(':param_usuario_id',$var_usuario_id);
         $sentencia_sql->bindParam(':param_usuario_email',$var_usuario_email);
-        $sentencia_sql->bindParam(':param_usuario_pass',$var_usuario_pass);
+        $sentencia_sql->bindParam(':param_usuario_pass',$contra_hash);
         $sentencia_sql->bindParam(':param_usuario_rol_id',$var_usuario_rol_id);
-
-    
         $sentencia_sql->execute();
-
-        //fin modificacion imagen
-
-        header("Location:usuario.php");
-        }else{
-            
-            $sentencia_sql= $conexion->prepare("SELECT 
-            usuario.sql_usuario_id, 
-            usuario.sql_usuario_email, 
-            usuario.sql_usuario_pass, 
-            usuario.sql_usuario_rol_id,
-            rol.sql_rol_nombre
-            FROM usuario
-            JOIN rol ON usuario.sql_usuario_rol_id=rol.sql_rol_id 
-            WHERE sql_usuario_id=:param_usuario_id;");
-            $sentencia_sql->bindParam(':param_usuario_id',$var_usuario_id);
-            $sentencia_sql->execute();
-            //FETCH_LAZY CARGA LOS DATOS UNO A UNO:
-            $usuario = $sentencia_sql->fetch(PDO::FETCH_LAZY);            
-            $var_usuario_rol_id_2=$usuario['sql_usuario_rol_id'];
-            $var_rol_nombre=$usuario['sql_rol_nombre'];   
-        }    
+        header("Location:usuario.php");   
         break;
 
 
@@ -232,48 +201,58 @@ if(isset($var_usuario_rol_id_2)){
                         <div class="alert alert-danger">
                         <strong>Email existente, digite un nuevo Email</strong>
                         </div>
-
-                   <?php }} ?>
-                   <?php if(isset($validacion_modi)){
-                        if($validacion_modi==false){
-                         ?>
-                        <div class="alert alert-danger">
-                        <strong>Otro usuario tiene ese email, digite un nuevo email</strong>
-                        </div>
-
                    <?php }} ?>
 
                     <div class = "form-group">
                         <label for="usuario_email">Émail:</label>
-                        <input type="email" required class="form-control" value="<?php echo $var_usuario_email; ?>" name="usuario_email" id="usuario_email"  placeholder="Email">
+                        <input <?php if($var_usuario_email!="" && $validacion==true){$readonly="readonly"; echo $readonly;}?>
+                        type="email" required class="form-control" value="<?php echo $var_usuario_email; ?>" name="usuario_email" id="usuario_email"  placeholder="Email">
                     </div>
 
 
+                                       
+                    <?php 
+                    if($var_usuario_email!="" && $validacion_2==true) {             
+                    ?>
+                    <div class = "form-group">
+                            <div class="form-group">
+                                <label for="usuario_pass">Contraseña:</label>
+                                <button class="btn btn-primary btn-sm" type="submit" id="boton" value="cambio_contra" name="cambio_contra">Cambiar Contraseña</button>                          
+                                <div class="juntar">
+                                <input hidden required class="form-control" value="<?php echo $var_usuario_pass; ?>" type="password" name="usuario_pass" id="contraseña2" placeholder="Nueva contraseña">
+                                <span class="boton_ver"><button hidden class="btn btn-primary" type="button" id="boton2">ver</button></span>  
+                                </div>
+                            </div>
+                            <script type="text/javascript">
+                                var boton = document.getElementById('boton');
+                                var ver = document.getElementById('boton2');
+                                boton.addEventListener('click',mostrarInput);
+                                function mostrarInput(){
+                                    document.getElementById("contraseña2").hidden = false;
+                                    document.getElementById("contraseña2").value = "";
+                                    document.getElementById("boton2").hidden = false;
+                                    document.getElementById("boton").hidden = true;                                                                      
+                                }
+                                ver.addEventListener('click',mostrarContraseña);
+                                function mostrarContraseña(){
+                                    if(document.getElementById("contraseña2").type == "password"){
+                                        document.getElementById("contraseña2").type = "text";
+                                    }else{
+                                        document.getElementById("contraseña2").type = "password";
+                                    }
+                                }
+                            </script>  
+                        
+                    </div>
+                    <?php } if (($var_usuario_email=="" && $validacion_2==true) ||($var_usuario_email!="" && $validacion_2==false)) {  ?>
 
                     <div class = "form-group">
-                        <label>Contraseña:</label>
-                        <div class="form-row">
-                            <div class="col">
-                                <input required class="form-control" value="<?php echo $var_usuario_pass; ?>" type="password" name="usuario_pass" id="contraseña" placeholder="Contraseña">
-                            </div>
-
-                            <div class="col">
-                                <button class="btn btn-primary" type="button" id="boton">Mostrar Contraseña</button>
-                            </div>
-                        </div>
+                        <label for="usuario_pass">Contraseña:</label>
+                        <input required class="form-control" value="<?php echo $var_usuario_pass; ?>" type="password" name="usuario_pass" id="contraseña" placeholder="Contraseña">
                     </div>
-                    <script type="text/javascript">
-                        var boton = document.getElementById('boton');
-                        var input = document.getElementById('contraseña');
-                        boton.addEventListener('click',mostrarContraseña);
-                        function mostrarContraseña(){
-                            if(input.type == "password"){
-                                input.type = "text";
-                            }else{
-                                input.type = "password";
-                            }
-                        }
-                        </script>
+                    <?php } ?>
+
+                     
 
                      <!-- Lista con areas: -->
                     <div class = "form-group">
@@ -291,41 +270,16 @@ if(isset($var_usuario_rol_id_2)){
                     </div>
 
 
-                    <div class="btn-group" role="group" aria-label="">
-
-
-                        <button type="submit" name="accion" 
-
-                        <?php if(isset($validacion_modi)){
-                            if($validacion_modi==false){
-                                echo "disabled";
-                            }
-                        }else{
-                            if($var_accion=="Seleccionar"){
-                                echo "disabled";
-                            } 
-                        }
-                        ?>
+                    <div class="btn-group" role="group" aria-label=""><button type="submit" name="accion" <?php if($var_accion=="Seleccionar"){echo "disabled";}?>
                         value= "Agregar" class="btn btn-success">Agregar</button>
                         
-                        <button type="submit" name="accion" 
-                        <?php if(isset($validacion_modi)){
-                            if($validacion_modi==false){
-                                echo "";
-                            }
-                        }else{
-                            if($var_accion!="Seleccionar"){
-                                echo "disabled";
-                            }
-                        } 
-                        ?> value= "Modificar" class="btn btn-warning">Modificar</button>
+                        <button type="submit" name="accion"<?php if($var_accion!="Seleccionar"){echo "disabled";}?> value= "Modificar" class="btn btn-warning">Modificar</button>
 
                          <a href="usuario.php"><button type="button" class="btn btn-info" ">Cancelar</button></a>
                     </div>
                     <!-- cambiar tipo de boton, sacarlo del form -->  
                 </form> 
                 <br/>
-               
                    
             </div>
             
@@ -378,6 +332,8 @@ if(isset($var_usuario_rol_id_2)){
             <?php  } ?>
             </tbody>
         </table>
+        
+
 
 
 
